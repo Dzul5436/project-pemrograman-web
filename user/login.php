@@ -95,28 +95,10 @@
         <a href="dashboard-mahasiswa.html" class="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
           <i class="fas fa-sign-in-alt"></i> Masuk
         </a>
-        
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-4 bg-white text-gray-500">atau masuk dengan</span>
-          </div>
-        </div>
-        
-        <div class="grid grid-cols-2 gap-4">
-          <button type="button" class="py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2">
-            <i class="fab fa-google text-red-500"></i> Google
-          </button>
-          <button type="button" class="py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2">
-            <i class="fas fa-university text-primary"></i> SSO Kampus
-          </button>
-        </div>
       </form>
       
       <p class="text-center text-gray-500 mt-8">
-        Belum punya akun? <a href="register.html" class="text-primary font-semibold hover:text-secondary">Daftar sekarang</a>
+        Belum punya akun? <a href="register.php" class="text-primary font-semibold hover:text-secondary">Daftar sekarang</a>
       </p>
       
       <!-- Updated quick access - removed panitia, only mahasiswa now -->
@@ -131,7 +113,7 @@
 
       <!-- Admin login link -->
       <div class="mt-4 text-center">
-        <a href="../admin/login.html" class="text-slate-500 hover:text-slate-700 text-sm flex items-center justify-center gap-2">
+        <a href="../admin/login.php" class="text-slate-500 hover:text-slate-700 text-sm flex items-center justify-center gap-2">
           <i class="fas fa-shield-halved"></i> Masuk sebagai Admin
         </a>
       </div>

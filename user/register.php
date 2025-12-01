@@ -133,7 +133,7 @@
       </form>
       
       <p class="text-center text-gray-500 mt-8">
-        Sudah punya akun? <a href="login.html" class="text-primary font-semibold hover:text-secondary">Masuk di sini</a>
+        Sudah punya akun? <a href="login.php" class="text-primary font-semibold hover:text-secondary">Masuk di sini</a>
       </p>
     </div>
   </div>

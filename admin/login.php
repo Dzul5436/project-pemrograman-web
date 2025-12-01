@@ -80,7 +80,6 @@
             <input type="checkbox" class="w-4 h-4 text-primary bg-slate-700 border-slate-600 rounded focus:ring-primary focus:ring-offset-slate-800">
             <span class="text-sm text-slate-400">Ingat saya</span>
           </label>
-          <a href="#" class="text-sm text-primary hover:text-blue-400 font-medium">Lupa password?</a>
         </div>
         
         <a href="dashboard-admin.html" class="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
@@ -93,20 +92,12 @@
         <div class="absolute inset-0 flex items-center">
           <div class="w-full border-t border-slate-700"></div>
         </div>
-        <div class="relative flex justify-center text-sm">
-          <span class="px-4 bg-slate-800 text-slate-500">atau</span>
-        </div>
       </div>
-
-      <!-- SSO Admin -->
-      <button type="button" class="w-full py-3 border border-slate-600 text-slate-300 rounded-xl font-medium hover:bg-slate-700 transition flex items-center justify-center gap-2">
-        <i class="fas fa-key text-primary"></i> Masuk dengan SSO Admin
-      </button>
     </div>
 
     <!-- Footer Links -->
     <div class="mt-6 text-center">
-      <a href="login.html" class="text-slate-400 hover:text-white text-sm flex items-center justify-center gap-2">
+      <a href="../user/login.php" class="text-slate-400 hover:text-white text-sm flex items-center justify-center gap-2">
         <i class="fas fa-arrow-left"></i> Kembali ke Login Mahasiswa
       </a>
     </div>

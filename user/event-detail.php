@@ -1,48 +1,4 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail Event - SIM-Event Kampus</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#2563eb',
-            secondary: '#1e40af',
-            accent: '#f59e0b',
-            dark: '#1e293b',
-          }
-        }
-      }
-    }
-  </script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-50 min-h-screen">
-  <!-- Navbar -->
-  <nav class="bg-white shadow-lg sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4">
-      <div class="flex justify-between items-center h-16">
-        <div class="flex items-center space-x-2">
-          <a href="index.html" class="flex items-center space-x-2">
-            <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-              <i class="fas fa-calendar-check text-white text-xl"></i>
-            </div>
-            <span class="font-bold text-xl text-dark">SIM-Event Kampus</span>
-          </a>
-        </div>
-        
-        <div class="flex items-center space-x-3">
-          <a href="login.html" class="px-4 py-2 text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition font-medium">Masuk</a>
-        </div>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Breadcrumb -->
+ <!-- Breadcrumb -->
   <div class="bg-white border-b">
     <div class="max-w-7xl mx-auto px-4 py-3">
       <nav class="flex items-center gap-2 text-sm">
