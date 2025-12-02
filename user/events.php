@@ -1,37 +1,134 @@
-<!-- Header -->
+<?php
+session_start();
+require_once './koneksi.php';
+
+$search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, $_GET['search']) : '';
+$kategori_filter = isset($_GET['kategori']) ? (int)$_GET['kategori'] : 0;
+$status_filter = isset($_GET['status']) ? mysqli_real_escape_string($koneksi, $_GET['status']) : '';
+
+// Query dasar untuk mendapatkan events
+$query = "SELECT e.*, k.nama_kategori, u.nama as nama_penyelenggara
+          FROM events e
+          LEFT JOIN kategori_event k ON e.kategori_id = k.id
+          LEFT JOIN users u ON e.user_id = u.id
+          WHERE 1=1";
+
+// Tambah filter pencarian
+if ($search) {
+    $query .= " AND (e.judul LIKE '%$search%' OR e.deskripsi LIKE '%$search%')";
+}
+
+// Tambah filter kategori
+if ($kategori_filter > 0) {
+    $query .= " AND e.kategori_id = $kategori_filter";
+}
+
+// Tambah filter status
+if ($status_filter === 'upcoming') {
+    $query .= " AND e.tanggal_mulai > CURDATE()";
+} elseif ($status_filter === 'ongoing') {
+    $query .= " AND e.tanggal_mulai <= CURDATE() AND e.tanggal_selesai >= CURDATE()";
+} elseif ($status_filter === 'past') {
+    $query .= " AND e.tanggal_selesai < CURDATE()";
+}
+
+$query .= " ORDER BY e.tanggal_mulai ASC";
+
+$result_events = mysqli_query($koneksi, $query);
+$total_events = mysqli_num_rows($result_events);
+
+// Query untuk kategori
+$query_kategori = "SELECT * FROM kategori_event ORDER BY nama_kategori";
+$result_kategori = mysqli_query($koneksi, $query_kategori);
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar Event - SIM-Event Kampus</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2563eb',
+            secondary: '#1e40af',
+            accent: '#f59e0b',
+            dark: '#1e293b',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <!-- Navbar -->
+  <nav class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <a href="../index.php" class="flex items-center space-x-2">
+          <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <i class="fas fa-calendar-alt text-white text-xl"></i>
+          </div>
+          <span class="font-bold text-xl text-dark">SIM-Event</span>
+        </a>
+        
+        <div class="flex items-center gap-4">
+          <?php if (isset($_SESSION['user_id'])): ?>
+          <a href="dashboard.php" class="text-gray-600 hover:text-primary">Dashboard</a>
+          <a href="logout.php" class="text-gray-600 hover:text-primary">Logout</a>
+          <?php else: ?>
+          <a href="login.php" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition">Login</a>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header -->
   <section class="bg-gradient-to-r from-primary to-secondary py-12">
     <div class="max-w-7xl mx-auto px-4">
       <h1 class="text-3xl md:text-4xl font-bold text-white">Daftar Event</h1>
       <p class="text-blue-100 mt-2">Temukan dan ikuti event-event menarik di kampus</p>
       
       <!-- Search & Filter -->
-      <div class="mt-8 bg-white rounded-2xl p-4 shadow-lg">
+      <form method="GET" action="" class="mt-8 bg-white rounded-2xl p-4 shadow-lg">
         <div class="grid md:grid-cols-4 gap-4">
           <div class="md:col-span-2 relative">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
               <i class="fas fa-search"></i>
             </span>
-            <input type="text" placeholder="Cari event..." class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
+            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Cari event..." class="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none">
           </div>
           <div class="relative">
-            <select class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none bg-white">
+            <select name="kategori" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none bg-white">
               <option value="">Semua Kategori</option>
-              <option value="seminar">Seminar</option>
-              <option value="workshop">Workshop</option>
-              <option value="lomba">Lomba</option>
-              <option value="talkshow">Talkshow</option>
+              <?php 
+              mysqli_data_seek($result_kategori, 0);
+              while ($kat = mysqli_fetch_assoc($result_kategori)): 
+              ?>
+              <option value="<?= $kat['id'] ?>" <?= $kategori_filter == $kat['id'] ? 'selected' : '' ?>><?= htmlspecialchars($kat['nama_kategori']) ?></option>
+              <?php endwhile; ?>
             </select>
           </div>
           <div class="relative">
-            <select class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none bg-white">
+            <select name="status" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none bg-white">
               <option value="">Semua Status</option>
-              <option value="upcoming">Akan Datang</option>
-              <option value="ongoing">Sedang Berlangsung</option>
-              <option value="past">Selesai</option>
+              <option value="upcoming" <?= $status_filter === 'upcoming' ? 'selected' : '' ?>>Akan Datang</option>
+              <option value="ongoing" <?= $status_filter === 'ongoing' ? 'selected' : '' ?>>Sedang Berlangsung</option>
+              <option value="past" <?= $status_filter === 'past' ? 'selected' : '' ?>>Selesai</option>
             </select>
           </div>
         </div>
-      </div>
+        <div class="mt-4 flex justify-end">
+          <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition">
+            <i class="fas fa-search mr-2"></i>Cari
+          </button>
+        </div>
+      </form>
     </div>
   </section>
 
@@ -60,208 +157,57 @@
   <section class="py-12">
     <div class="max-w-7xl mx-auto px-4">
       <div class="flex items-center justify-between mb-8">
-        <p class="text-gray-600">Menampilkan <span class="font-semibold text-dark">12 event</span></p>
-        <div class="flex items-center gap-2">
-          <span class="text-gray-500 text-sm">Urutkan:</span>
-          <select class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none">
-            <option>Terbaru</option>
-            <option>Terdekat</option>
-            <option>Populer</option>
-          </select>
-        </div>
+        <p class="text-gray-600">Menampilkan <span class="font-semibold text-dark"><?= $total_events ?> event</span></p>
       </div>
       
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <!-- Event Card 1 -->
+        <?php if (mysqli_num_rows($result_events) > 0): ?>
+        <?php while ($event = mysqli_fetch_assoc($result_events)): ?>
         <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
           <div class="relative">
-            <img src="/placeholder.svg?height=200&width=400" alt="Seminar AI" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
-            <span class="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">Seminar</span>
-            <span class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">Gratis</span>
+            <?php if ($event['poster']): ?>
+            <img src="../uploads/posters/<?= $event['poster'] ?>" alt="<?= htmlspecialchars($event['judul']) ?>" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
+            <?php else: ?>
+            <div class="w-full h-48 bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+              <i class="fas fa-calendar-alt text-white text-4xl"></i>
+            </div>
+            <?php endif; ?>
+            <span class="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium"><?= htmlspecialchars($event['nama_kategori']) ?></span>
+            <span class="absolute top-4 right-4 <?= $event['biaya'] > 0 ? 'bg-accent text-dark' : 'bg-green-500 text-white' ?> px-3 py-1 rounded-full text-sm font-medium">
+              <?= $event['biaya'] > 0 ? 'Rp ' . number_format($event['biaya'], 0, ',', '.') : 'Gratis' ?>
+            </span>
           </div>
           <div class="p-6">
             <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
-              <span class="flex items-center gap-1"><i class="far fa-calendar"></i> 20 Des 2025</span>
-              <span class="flex items-center gap-1"><i class="far fa-clock"></i> 09:00 WIB</span>
+              <span class="flex items-center gap-1"><i class="far fa-calendar"></i> <?= date('d M Y', strtotime($event['tanggal_mulai'])) ?></span>
+              <span class="flex items-center gap-1"><i class="far fa-clock"></i> <?= date('H:i', strtotime($event['waktu_mulai'])) ?> WIB</span>
             </div>
-            <h3 class="text-xl font-bold text-dark mb-2">Seminar AI & Machine Learning</h3>
-            <p class="text-gray-600 text-sm mb-4">Pelajari dasar-dasar AI dan implementasinya dalam industri.</p>
+            <h3 class="text-xl font-bold text-dark mb-2"><?= htmlspecialchars($event['judul']) ?></h3>
+            <p class="text-gray-600 text-sm mb-4 line-clamp-2"><?= htmlspecialchars(substr($event['deskripsi'], 0, 100)) ?>...</p>
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-2">
-                <img src="/placeholder.svg?height=32&width=32" alt="Organizer" class="w-8 h-8 rounded-full">
-                <span class="text-sm text-gray-600">Himpunan TI</span>
+                <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  <?= strtoupper(substr($event['nama_penyelenggara'] ?? 'U', 0, 1)) ?>
+                </div>
+                <span class="text-sm text-gray-600"><?= htmlspecialchars($event['nama_penyelenggara'] ?? 'Unknown') ?></span>
               </div>
             </div>
             <div class="flex gap-2">
-              <a href="event-detail.html" class="flex-1 text-center py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition">Detail</a>
-              <a href="https://forms.google.com/example" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
+              <a href="event-detail.php?id=<?= $event['id'] ?>" class="flex-1 text-center py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition">Detail</a>
+              <a href="<?= htmlspecialchars($event['link_pendaftaran']) ?>" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
                 <i class="fab fa-google text-sm"></i> Daftar
               </a>
             </div>
           </div>
         </div>
-        
-        <!-- Event Card 2 -->
-        <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
-          <div class="relative">
-            <img src="/placeholder.svg?height=200&width=400" alt="Workshop" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
-            <span class="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">Workshop</span>
-            <span class="absolute top-4 right-4 bg-accent text-dark px-3 py-1 rounded-full text-sm font-medium">Rp 50K</span>
-          </div>
-          <div class="p-6">
-            <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
-              <span class="flex items-center gap-1"><i class="far fa-calendar"></i> 22 Des 2025</span>
-              <span class="flex items-center gap-1"><i class="far fa-clock"></i> 13:00 WIB</span>
-            </div>
-            <h3 class="text-xl font-bold text-dark mb-2">Workshop Web Development</h3>
-            <p class="text-gray-600 text-sm mb-4">Belajar membuat website dari nol dengan HTML, CSS, JS.</p>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <img src="/placeholder.svg?height=32&width=32" alt="Organizer" class="w-8 h-8 rounded-full">
-                <span class="text-sm text-gray-600">UKM Programming</span>
-              </div>
-            </div>
-            <div class="flex gap-2">
-              <a href="event-detail.html" class="flex-1 text-center py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition">Detail</a>
-              <a href="https://forms.google.com/example" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
-                <i class="fab fa-google text-sm"></i> Daftar
-              </a>
-            </div>
-          </div>
+        <?php endwhile; ?>
+        <?php else: ?>
+        <div class="col-span-3 text-center py-12">
+          <i class="fas fa-calendar-times text-6xl text-gray-300 mb-4"></i>
+          <h3 class="text-xl font-semibold text-gray-600">Tidak ada event ditemukan</h3>
+          <p class="text-gray-500 mt-2">Coba ubah filter pencarian Anda</p>
         </div>
-        
-        <!-- Event Card 3 -->
-        <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
-          <div class="relative">
-            <img src="/placeholder.svg?height=200&width=400" alt="Lomba" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
-            <span class="absolute top-4 left-4 bg-purple-500 text-white px-3 py-1 rounded-full text-sm font-medium">Lomba</span>
-            <span class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">Gratis</span>
-          </div>
-          <div class="p-6">
-            <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
-              <span class="flex items-center gap-1"><i class="far fa-calendar"></i> 25 Des 2025</span>
-              <span class="flex items-center gap-1"><i class="far fa-clock"></i> 08:00 WIB</span>
-            </div>
-            <h3 class="text-xl font-bold text-dark mb-2">UI/UX Design Competition</h3>
-            <p class="text-gray-600 text-sm mb-4">Tunjukkan kreativitasmu dalam mendesain aplikasi.</p>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <img src="/placeholder.svg?height=32&width=32" alt="Organizer" class="w-8 h-8 rounded-full">
-                <span class="text-sm text-gray-600">BEM Fakultas</span>
-              </div>
-            </div>
-            <div class="flex gap-2">
-              <a href="event-detail.html" class="flex-1 text-center py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition">Detail</a>
-              <a href="https://forms.google.com/example" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
-                <i class="fab fa-google text-sm"></i> Daftar
-              </a>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Event Card 4 -->
-        <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
-          <div class="relative">
-            <img src="/placeholder.svg?height=200&width=400" alt="Talkshow" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
-            <span class="absolute top-4 left-4 bg-amber-500 text-white px-3 py-1 rounded-full text-sm font-medium">Talkshow</span>
-            <span class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">Gratis</span>
-          </div>
-          <div class="p-6">
-            <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
-              <span class="flex items-center gap-1"><i class="far fa-calendar"></i> 28 Des 2025</span>
-              <span class="flex items-center gap-1"><i class="far fa-clock"></i> 10:00 WIB</span>
-            </div>
-            <h3 class="text-xl font-bold text-dark mb-2">Talkshow: Membangun Startup</h3>
-            <p class="text-gray-600 text-sm mb-4">Diskusi bersama founder startup sukses Indonesia.</p>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <img src="/placeholder.svg?height=32&width=32" alt="Organizer" class="w-8 h-8 rounded-full">
-                <span class="text-sm text-gray-600">UKM Entrepreneur</span>
-              </div>
-            </div>
-            <div class="flex gap-2">
-              <a href="event-detail.html" class="flex-1 text-center py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition">Detail</a>
-              <a href="https://forms.google.com/example" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
-                <i class="fab fa-google text-sm"></i> Daftar
-              </a>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Event Card 5 -->
-        <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
-          <div class="relative">
-            <img src="/placeholder.svg?height=200&width=400" alt="Seminar" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
-            <span class="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-medium">Seminar</span>
-            <span class="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">Gratis</span>
-          </div>
-          <div class="p-6">
-            <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
-              <span class="flex items-center gap-1"><i class="far fa-calendar"></i> 5 Jan 2026</span>
-              <span class="flex items-center gap-1"><i class="far fa-clock"></i> 09:00 WIB</span>
-            </div>
-            <h3 class="text-xl font-bold text-dark mb-2">Cybersecurity Awareness</h3>
-            <p class="text-gray-600 text-sm mb-4">Pelajari cara melindungi data dan sistem dari ancaman cyber.</p>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <img src="/placeholder.svg?height=32&width=32" alt="Organizer" class="w-8 h-8 rounded-full">
-                <span class="text-sm text-gray-600">Lab Keamanan</span>
-              </div>
-            </div>
-            <div class="flex gap-2">
-              <a href="event-detail.html" class="flex-1 text-center py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition">Detail</a>
-              <a href="https://forms.google.com/example" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
-                <i class="fab fa-google text-sm"></i> Daftar
-              </a>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Event Card 6 -->
-        <div class="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition group">
-          <div class="relative">
-            <img src="/placeholder.svg?height=200&width=400" alt="Workshop" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
-            <span class="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">Workshop</span>
-            <span class="absolute top-4 right-4 bg-accent text-dark px-3 py-1 rounded-full text-sm font-medium">Rp 75K</span>
-          </div>
-          <div class="p-6">
-            <div class="flex items-center gap-4 text-sm text-gray-500 mb-3">
-              <span class="flex items-center gap-1"><i class="far fa-calendar"></i> 10 Jan 2026</span>
-              <span class="flex items-center gap-1"><i class="far fa-clock"></i> 13:00 WIB</span>
-            </div>
-            <h3 class="text-xl font-bold text-dark mb-2">Workshop Flutter Development</h3>
-            <p class="text-gray-600 text-sm mb-4">Bangun aplikasi mobile cross-platform dengan Flutter.</p>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <img src="/placeholder.svg?height=32&width=32" alt="Organizer" class="w-8 h-8 rounded-full">
-                <span class="text-sm text-gray-600">GDSC Kampus</span>
-              </div>
-            </div>
-            <div class="flex gap-2">
-              <a href="event-detail.html" class="flex-1 text-center py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition">Detail</a>
-              <a href="https://forms.google.com/example" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
-                <i class="fab fa-google text-sm"></i> Daftar
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Pagination -->
-      <div class="flex justify-center mt-12">
-        <nav class="flex items-center gap-2">
-          <button class="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <button class="w-10 h-10 rounded-lg bg-primary text-white font-medium">1</button>
-          <button class="w-10 h-10 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium">2</button>
-          <button class="w-10 h-10 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium">3</button>
-          <span class="px-2 text-gray-400">...</span>
-          <button class="w-10 h-10 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium">10</button>
-          <button class="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </nav>
+        <?php endif; ?>
       </div>
     </div>
   </section>
@@ -279,3 +225,4 @@
     </div>
   </footer>
 </body>
+</html>

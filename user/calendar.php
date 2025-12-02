@@ -1,4 +1,4 @@
-  <!-- Header -->
+<!-- Header -->
   <section class="bg-gradient-to-r from-primary to-secondary py-8">
     <div class="max-w-7xl mx-auto px-4">
       <h1 class="text-3xl font-bold text-white">Kalender Event</h1>

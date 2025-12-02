@@ -1,3 +1,101 @@
+<?php
+session_start();
+require_once '../koneksi.php';
+
+// Cek apakah user sudah login
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
+$error = '';
+$success = '';
+$user_id = $_SESSION['user_id'];
+
+$query_kategori = "SELECT * FROM kategori_event ORDER BY nama_kategori";
+$result_kategori = mysqli_query($koneksi, $query_kategori);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ambil data dari form
+    $judul = mysqli_real_escape_string($koneksi, $_POST['judul']);
+    $deskripsi = mysqli_real_escape_string($koneksi, $_POST['deskripsi']);
+    $kategori_id = (int)$_POST['kategori_id'];
+    $tanggal_mulai = mysqli_real_escape_string($koneksi, $_POST['tanggal_mulai']);
+    $tanggal_selesai = mysqli_real_escape_string($koneksi, $_POST['tanggal_selesai'] ?: $_POST['tanggal_mulai']);
+    $waktu_mulai = mysqli_real_escape_string($koneksi, $_POST['waktu_mulai']);
+    $waktu_selesai = mysqli_real_escape_string($koneksi, $_POST['waktu_selesai']);
+    $lokasi = mysqli_real_escape_string($koneksi, $_POST['lokasi']);
+    $alamat_lengkap = mysqli_real_escape_string($koneksi, $_POST['alamat_lengkap']);
+    $tipe_event = mysqli_real_escape_string($koneksi, $_POST['tipe_event']);
+    $link_meeting = mysqli_real_escape_string($koneksi, $_POST['link_meeting']);
+    $kuota = (int)$_POST['kuota'];
+    $biaya = (int)$_POST['biaya'];
+    $benefit = mysqli_real_escape_string($koneksi, implode(',', $_POST['benefit'] ?? []));
+    $link_pendaftaran = mysqli_real_escape_string($koneksi, $_POST['link_pendaftaran']);
+    $batas_pendaftaran = mysqli_real_escape_string($koneksi, $_POST['batas_pendaftaran']);
+    $organisasi = mysqli_real_escape_string($koneksi, $_POST['organisasi']);
+    $nama_pic = mysqli_real_escape_string($koneksi, $_POST['nama_pic']);
+    $no_hp_pic = mysqli_real_escape_string($koneksi, $_POST['no_hp_pic']);
+    $email_pic = mysqli_real_escape_string($koneksi, $_POST['email_pic']);
+    $catatan = mysqli_real_escape_string($koneksi, $_POST['catatan']);
+    
+    // Upload poster jika ada
+    $poster = '';
+    if (isset($_FILES['poster']) && $_FILES['poster']['error'] === 0) {
+        $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+        $filename = $_FILES['poster']['name'];
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        
+        if (in_array($ext, $allowed)) {
+            $new_filename = 'poster_' . time() . '_' . uniqid() . '.' . $ext;
+            $upload_path = '../uploads/posters/' . $new_filename;
+            
+            if (!is_dir('../uploads/posters/')) {
+                mkdir('../uploads/posters/', 0777, true);
+            }
+            
+            if (move_uploaded_file($_FILES['poster']['tmp_name'], $upload_path)) {
+                $poster = $new_filename;
+            }
+        }
+    }
+    
+    // Query insert pengajuan event
+    $query_insert = "INSERT INTO pengajuan_event (
+        judul, deskripsi, kategori_id, tanggal_mulai, tanggal_selesai, 
+        waktu_mulai, waktu_selesai, lokasi, alamat_lengkap, tipe_event, 
+        link_meeting, kuota, biaya, benefit, poster, link_pendaftaran, 
+        batas_pendaftaran, organisasi, nama_pic, no_hp_pic, email_pic, 
+        catatan, status, user_id, created_at
+    ) VALUES (
+        '$judul', '$deskripsi', $kategori_id, '$tanggal_mulai', '$tanggal_selesai',
+        '$waktu_mulai', '$waktu_selesai', '$lokasi', '$alamat_lengkap', '$tipe_event',
+        '$link_meeting', $kuota, $biaya, '$benefit', '$poster', '$link_pendaftaran',
+        '$batas_pendaftaran', '$organisasi', '$nama_pic', '$no_hp_pic', '$email_pic',
+        '$catatan', 'menunggu', $user_id, NOW()
+    )";
+    
+    if (mysqli_query($koneksi, $query_insert)) {
+        $success = 'Pengajuan event berhasil dikirim! Admin akan mereview dalam 1-3 hari kerja.';
+        
+        // Buat notifikasi untuk user
+        $notif_query = "INSERT INTO notifikasi (user_id, judul, pesan, tipe, created_at) 
+                        VALUES ($user_id, 'Pengajuan Event Terkirim', 'Pengajuan event \"$judul\" berhasil dikirim dan sedang menunggu review admin.', 'info', NOW())";
+        mysqli_query($koneksi, $notif_query);
+        
+        // Buat notifikasi untuk admin
+        $admin_query = "SELECT id FROM users WHERE role = 'admin'";
+        $admin_result = mysqli_query($koneksi, $admin_query);
+        while ($admin = mysqli_fetch_assoc($admin_result)) {
+            $notif_admin = "INSERT INTO notifikasi (user_id, judul, pesan, tipe, created_at) 
+                            VALUES ({$admin['id']}, 'Pengajuan Event Baru', 'Ada pengajuan event baru \"$judul\" yang perlu direview.', 'warning', NOW())";
+            mysqli_query($koneksi, $notif_admin);
+        }
+    } else {
+        $error = 'Terjadi kesalahan saat mengajukan event. Silakan coba lagi.';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -26,7 +124,7 @@
   <nav class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <a href="index.html" class="flex items-center space-x-2">
+        <a href="dashboard.php" class="flex items-center space-x-2">
           <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
             <i class="fas fa-calendar-alt text-white text-xl"></i>
           </div>
@@ -34,7 +132,7 @@
         </a>
         
         <div class="flex items-center gap-4">
-          <a href="dashboard-panitia.html" class="text-gray-600 hover:text-primary">
+          <a href="dashboard.php" class="text-gray-600 hover:text-primary">
             <i class="fas fa-arrow-left mr-2"></i>Kembali
           </a>
         </div>
@@ -50,6 +148,20 @@
       <p class="text-gray-600 mt-1">Isi formulir berikut untuk mengajukan event. Admin akan mereview pengajuan Anda.</p>
     </div>
 
+    <?php if ($error): ?>
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+      <i class="fas fa-exclamation-circle text-red-500"></i>
+      <span class="text-red-700"><?= $error ?></span>
+    </div>
+    <?php endif; ?>
+    
+    <?php if ($success): ?>
+    <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+      <i class="fas fa-check-circle text-green-500"></i>
+      <span class="text-green-700"><?= $success ?></span>
+    </div>
+    <?php endif; ?>
+
     <!-- Info Box -->
     <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3">
       <i class="fas fa-info-circle text-primary mt-0.5"></i>
@@ -59,7 +171,7 @@
       </div>
     </div>
 
-    <form class="space-y-6">
+    <form method="POST" action="" enctype="multipart/form-data" class="space-y-6">
       <!-- Basic Info -->
       <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-lg font-bold text-dark mb-6 flex items-center gap-2">
@@ -69,23 +181,22 @@
         <div class="space-y-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Nama Event <span class="text-red-500">*</span></label>
-            <input type="text" placeholder="Contoh: Seminar AI & Machine Learning" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="text" name="judul" required placeholder="Contoh: Seminar AI & Machine Learning" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           
           <div class="grid md:grid-cols-2 gap-6">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Kategori <span class="text-red-500">*</span></label>
-              <select class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition appearance-none bg-white">
+              <select name="kategori_id" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition appearance-none bg-white">
                 <option value="">Pilih Kategori</option>
-                <option value="seminar">Seminar</option>
-                <option value="workshop">Workshop</option>
-                <option value="lomba">Lomba</option>
-                <option value="talkshow">Talkshow</option>
+                <?php while ($kat = mysqli_fetch_assoc($result_kategori)): ?>
+                <option value="<?= $kat['id'] ?>"><?= htmlspecialchars($kat['nama_kategori']) ?></option>
+                <?php endwhile; ?>
               </select>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tipe Event <span class="text-red-500">*</span></label>
-              <select class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition appearance-none bg-white">
+              <select name="tipe_event" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition appearance-none bg-white">
                 <option value="">Pilih Tipe</option>
                 <option value="offline">Offline</option>
                 <option value="online">Online</option>
@@ -96,26 +207,27 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Organisasi/Penyelenggara <span class="text-red-500">*</span></label>
-            <input type="text" placeholder="Contoh: Himpunan Mahasiswa Teknik Informatika" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="text" name="organisasi" required placeholder="Contoh: Himpunan Mahasiswa Teknik Informatika" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi Event <span class="text-red-500">*</span></label>
-            <textarea rows="5" placeholder="Jelaskan tentang event ini secara detail..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none"></textarea>
+            <textarea name="deskripsi" required rows="5" placeholder="Jelaskan tentang event ini secara detail..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none"></textarea>
           </div>
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Poster/Banner Event</label>
-            <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary transition cursor-pointer">
+            <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary transition cursor-pointer" onclick="document.getElementById('poster').click()">
               <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
               <p class="text-gray-600">Drag & drop gambar atau <span class="text-primary font-medium">klik untuk upload</span></p>
               <p class="text-gray-400 text-sm mt-1">PNG, JPG hingga 5MB (Rekomendasi: 1200x630px)</p>
+              <input type="file" name="poster" id="poster" accept="image/*" class="hidden">
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Added Google Form Link section for registration -->
+      <!-- Google Form Link -->
       <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-lg font-bold text-dark mb-6 flex items-center gap-2">
           <i class="fab fa-google text-red-500"></i> Link Pendaftaran (Google Form)
@@ -127,7 +239,7 @@
               <i class="fas fa-exclamation-triangle text-amber-500 mt-0.5"></i>
               <div>
                 <p class="text-sm font-medium text-amber-800">Penting: Link Google Form Wajib Diisi</p>
-                <p class="text-sm text-amber-700 mt-1">Pendaftaran peserta akan dilakukan melalui Google Form yang Anda buat. Pastikan form sudah siap sebelum mengajukan event.</p>
+                <p class="text-sm text-amber-700 mt-1">Pendaftaran peserta akan dilakukan melalui Google Form yang Anda buat.</p>
               </div>
             </div>
           </div>
@@ -138,26 +250,8 @@
               <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                 <i class="fab fa-google"></i>
               </span>
-              <input type="url" placeholder="https://forms.google.com/..." class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+              <input type="url" name="link_pendaftaran" required placeholder="https://forms.google.com/..." class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
             </div>
-            <p class="text-xs text-gray-500 mt-2">
-              <i class="fas fa-info-circle mr-1"></i>
-              Contoh: https://docs.google.com/forms/d/e/xxxxx/viewform
-            </p>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Link Spreadsheet Responses (Opsional)</label>
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                <i class="fas fa-table"></i>
-              </span>
-              <input type="url" placeholder="https://docs.google.com/spreadsheets/..." class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
-            </div>
-            <p class="text-xs text-gray-500 mt-2">
-              <i class="fas fa-info-circle mr-1"></i>
-              Untuk memudahkan admin memantau jumlah pendaftar
-            </p>
           </div>
         </div>
       </div>
@@ -171,23 +265,23 @@
         <div class="grid md:grid-cols-2 gap-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Pelaksanaan <span class="text-red-500">*</span></label>
-            <input type="date" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="date" name="tanggal_mulai" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Selesai (jika lebih dari 1 hari)</label>
-            <input type="date" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Selesai</label>
+            <input type="date" name="tanggal_selesai" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Waktu Mulai <span class="text-red-500">*</span></label>
-            <input type="time" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="time" name="waktu_mulai" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Waktu Selesai <span class="text-red-500">*</span></label>
-            <input type="time" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="time" name="waktu_selesai" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-2">Batas Pendaftaran <span class="text-red-500">*</span></label>
-            <input type="datetime-local" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="datetime-local" name="batas_pendaftaran" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
         </div>
       </div>
@@ -201,15 +295,15 @@
         <div class="space-y-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Nama Tempat <span class="text-red-500">*</span></label>
-            <input type="text" placeholder="Contoh: Auditorium Gedung A, Lantai 3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="text" name="lokasi" required placeholder="Contoh: Auditorium Gedung A, Lantai 3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Lengkap</label>
-            <textarea rows="2" placeholder="Alamat lengkap lokasi event..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none"></textarea>
+            <textarea name="alamat_lengkap" rows="2" placeholder="Alamat lengkap lokasi event..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none"></textarea>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Link Meeting Online (Jika Online/Hybrid)</label>
-            <input type="url" placeholder="https://zoom.us/... atau https://meet.google.com/..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="url" name="link_meeting" placeholder="https://zoom.us/... atau https://meet.google.com/..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
         </div>
       </div>
@@ -223,13 +317,13 @@
         <div class="grid md:grid-cols-2 gap-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Kuota Peserta <span class="text-red-500">*</span></label>
-            <input type="number" placeholder="100" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="number" name="kuota" required placeholder="100" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Biaya Pendaftaran</label>
             <div class="relative">
               <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
-              <input type="number" placeholder="0 (Gratis)" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+              <input type="number" name="biaya" value="0" placeholder="0 (Gratis)" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
             </div>
           </div>
         </div>
@@ -238,19 +332,19 @@
           <label class="block text-sm font-medium text-gray-700 mb-3">Benefit Peserta</label>
           <div class="grid md:grid-cols-2 gap-3">
             <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
-              <input type="checkbox" class="w-5 h-5 text-primary rounded">
+              <input type="checkbox" name="benefit[]" value="E-Sertifikat" class="w-5 h-5 text-primary rounded">
               <span class="text-gray-700">E-Sertifikat</span>
             </label>
             <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
-              <input type="checkbox" class="w-5 h-5 text-primary rounded">
+              <input type="checkbox" name="benefit[]" value="Materi" class="w-5 h-5 text-primary rounded">
               <span class="text-gray-700">Materi (PDF/PPT)</span>
             </label>
             <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
-              <input type="checkbox" class="w-5 h-5 text-primary rounded">
+              <input type="checkbox" name="benefit[]" value="Snack" class="w-5 h-5 text-primary rounded">
               <span class="text-gray-700">Snack & Coffee Break</span>
             </label>
             <label class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50">
-              <input type="checkbox" class="w-5 h-5 text-primary rounded">
+              <input type="checkbox" name="benefit[]" value="Networking" class="w-5 h-5 text-primary rounded">
               <span class="text-gray-700">Networking Session</span>
             </label>
           </div>
@@ -266,15 +360,15 @@
         <div class="grid md:grid-cols-2 gap-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Nama PIC <span class="text-red-500">*</span></label>
-            <input type="text" placeholder="Nama lengkap" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="text" name="nama_pic" required placeholder="Nama lengkap" value="<?= htmlspecialchars($_SESSION['nama']) ?>" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">No. WhatsApp <span class="text-red-500">*</span></label>
-            <input type="tel" placeholder="08xxxxxxxxxx" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="tel" name="no_hp_pic" required placeholder="08xxxxxxxxxx" value="<?= htmlspecialchars($_SESSION['no_hp'] ?? '') ?>" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-2">Email PIC <span class="text-red-500">*</span></label>
-            <input type="email" placeholder="email@example.com" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="email" name="email_pic" required placeholder="email@example.com" value="<?= htmlspecialchars($_SESSION['email']) ?>" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
           </div>
         </div>
       </div>
@@ -287,7 +381,7 @@
         
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Catatan untuk Admin (Opsional)</label>
-          <textarea rows="3" placeholder="Informasi tambahan yang perlu diketahui admin..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none"></textarea>
+          <textarea name="catatan" rows="3" placeholder="Informasi tambahan yang perlu diketahui admin..." class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none"></textarea>
         </div>
       </div>
 
@@ -296,10 +390,7 @@
         <button type="submit" class="flex-1 py-4 bg-primary text-white rounded-xl font-bold hover:bg-secondary transition flex items-center justify-center gap-2">
           <i class="fas fa-paper-plane"></i> Ajukan Event
         </button>
-        <button type="button" class="flex-1 py-4 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition flex items-center justify-center gap-2">
-          <i class="fas fa-save"></i> Simpan Draft
-        </button>
-        <a href="dashboard-panitia.html" class="px-8 py-4 border border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition flex items-center justify-center gap-2">
+        <a href="dashboard.php" class="px-8 py-4 border border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 transition flex items-center justify-center gap-2">
           <i class="fas fa-times"></i> Batal
         </a>
       </div>
