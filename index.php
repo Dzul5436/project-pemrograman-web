@@ -37,7 +37,7 @@
           <a href="./?p=blk" class="text-primary font-semibold">Beranda</a>
           <a href="./?p=ev" class="text-gray-600 hover:text-primary transition">Daftar Event</a>
           <a href="./?p=cl" class="text-gray-600 hover:text-primary transition">Kalender</a>
-          <a href="user/about.html" class="text-gray-600 hover:text-primary transition">Tentang</a>
+          <a href="./?p=tg" class="text-gray-600 hover:text-primary transition">Tentang</a>
         </div>
         
         <div class="flex items-center space-x-3">

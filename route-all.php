@@ -7,6 +7,7 @@ switch ($p){
     case 'aj-ev': include "user/ajukan-event.php"; break;
     case 'dsh': include "user/dashboard.php"; break;
     case "blk": include "dashboard.php"; break;
+    case 'tg': include "user/tentang.php"; break;
 
     default: include "dashboard.php"; break;
 
