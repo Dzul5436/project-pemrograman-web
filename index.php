@@ -81,7 +81,7 @@
             <li><a href="index.html" class="hover:text-white transition">Beranda</a></li>
             <li><a href="events.html" class="hover:text-white transition">Daftar Event</a></li>
             <li><a href="calendar.html" class="hover:text-white transition">Kalender</a></li>
-            <li><a href="about.html" class="hover:text-white transition">Tentang Kami</a></li>
+            <li><a href="tentang.php" class="hover:text-white transition">Tentang Kami</a></li>
           </ul>
         </div>
         
