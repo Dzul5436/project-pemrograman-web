@@ -5,7 +5,7 @@ require_once '../koneksi.php';
 $error = '';
 $success = '';
 
-$query_prodi = "SELECT DISTINCT prodi FROM users WHERE prodi IS NOT NULL AND prodi != '' ORDER BY prodi";
+$query_prodi = "SELECT DISTINCT prodi FROM mahasiswa WHERE prodi IS NOT NULL AND prodi != '' ORDER BY prodi";
 $result_prodi = mysqli_query($koneksi, $query_prodi);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -23,15 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($password) < 8) {
         $error = 'Password minimal 8 karakter!';
     } else {
-        // Cek apakah email sudah terdaftar
-        $check_email = "SELECT id FROM users WHERE email = '$email'";
+        $check_email = "SELECT id FROM mahasiswa WHERE email = '$email'";
         $result_email = mysqli_query($koneksi, $check_email);
         
         if (mysqli_num_rows($result_email) > 0) {
             $error = 'Email sudah terdaftar! Gunakan email lain.';
         } else {
-            // Cek apakah NIM sudah terdaftar
-            $check_nim = "SELECT id FROM users WHERE nim = '$nim'";
+            $check_nim = "SELECT id FROM mahasiswa WHERE nim = '$nim'";
             $result_nim = mysqli_query($koneksi, $check_nim);
             
             if (mysqli_num_rows($result_nim) > 0) {
@@ -40,17 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Hash password dengan MD5
                 $hashed_password = md5($password);
                 
-                // Query insert user baru
-                $query_insert = "INSERT INTO users (nama, nim, email, password, role, prodi, no_hp, created_at) 
-                                 VALUES ('$nama', '$nim', '$email', '$hashed_password', 'mahasiswa', '$prodi', '$no_hp', NOW())";
+                $query_insert = "INSERT INTO mahasiswa (nama, nim, email, password, prodi, no_hp, created_at) 
+                                 VALUES ('$nama', '$nim', '$email', '$hashed_password', '$prodi', '$no_hp', NOW())";
                 
                 if (mysqli_query($koneksi, $query_insert)) {
                     $success = 'Registrasi berhasil! Silakan login.';
                     
-                    // Buat notifikasi selamat datang
-                    $user_id = mysqli_insert_id($koneksi);
-                    $notif_query = "INSERT INTO notifikasi (user_id, judul, pesan, tipe, created_at) 
-                                    VALUES ($user_id, 'Selamat Datang!', 'Akun Anda berhasil dibuat. Jelajahi event-event menarik di kampus!', 'info', NOW())";
+                    $mahasiswa_id = mysqli_insert_id($koneksi);
+                    $notif_query = "INSERT INTO notifikasi (mahasiswa_id, judul, pesan, tipe, created_at) 
+                                    VALUES ($mahasiswa_id, 'Selamat Datang!', 'Akun Anda berhasil dibuat. Jelajahi event-event menarik di kampus!', 'info', NOW())";
                     mysqli_query($koneksi, $notif_query);
                 } else {
                     $error = 'Terjadi kesalahan saat registrasi. Silakan coba lagi.';
@@ -186,13 +182,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </span>
             <select name="prodi" required class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition appearance-none bg-white">
               <option value="">Pilih Program Studi</option>
-              <option value="Teknik Informatika">Teknik Informatika</option>
-              <option value="Sistem Informasi">Sistem Informasi</option>
-              <option value="Manajemen Informatika">Manajemen Informatika</option>
-              <option value="Akuntansi">Akuntansi</option>
-              <option value="Manajemen">Manajemen</option>
-              <option value="Ilmu Komunikasi">Ilmu Komunikasi</option>
-              <option value="Desain Komunikasi Visual">Desain Komunikasi Visual</option>
+              <?php while ($row_prodi = mysqli_fetch_assoc($result_prodi)): ?>
+              <option value="<?= $row_prodi['prodi'] ?>"><?= $row_prodi['prodi'] ?></option>
+              <?php endwhile; ?>
             </select>
           </div>
         </div>

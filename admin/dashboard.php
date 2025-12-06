@@ -26,11 +26,10 @@ $stats['rejected'] = mysqli_fetch_assoc(mysqli_query($koneksi, $query_rejected))
 $query_ongoing = "SELECT COUNT(*) as total FROM events WHERE tanggal_mulai <= CURDATE() AND tanggal_selesai >= CURDATE()";
 $stats['ongoing'] = mysqli_fetch_assoc(mysqli_query($koneksi, $query_ongoing))['total'];
 
-// Query pengajuan event terbaru
-$query_recent = "SELECT pe.*, k.nama_kategori, k.icon, k.warna, u.nama as nama_pengaju
+$query_recent = "SELECT pe.*, k.nama_kategori, k.warna, m.nama as nama_pengaju
                  FROM pengajuan_event pe
                  LEFT JOIN kategori_event k ON pe.kategori_id = k.id
-                 LEFT JOIN users u ON pe.user_id = u.id
+                 LEFT JOIN mahasiswa m ON pe.pengaju_id = m.id
                  WHERE pe.status = 'menunggu'
                  ORDER BY pe.created_at DESC
                  LIMIT 5";
@@ -44,11 +43,10 @@ $query_approved_recent = "SELECT e.*, k.nama_kategori
                           LIMIT 3";
 $result_approved_recent = mysqli_query($koneksi, $query_approved_recent);
 
-// Query pengaju aktif (user dengan pengajuan terbanyak)
-$query_active_users = "SELECT u.nama, u.prodi, COUNT(pe.id) as total_pengajuan
-                       FROM users u
-                       JOIN pengajuan_event pe ON u.id = pe.user_id
-                       GROUP BY u.id
+$query_active_users = "SELECT m.nama, m.prodi, COUNT(pe.id) as total_pengajuan
+                       FROM mahasiswa m
+                       JOIN pengajuan_event pe ON m.id = pe.pengaju_id
+                       GROUP BY m.id
                        ORDER BY total_pengajuan DESC
                        LIMIT 4";
 $result_active_users = mysqli_query($koneksi, $query_active_users);
@@ -203,7 +201,7 @@ $result_active_users = mysqli_query($koneksi, $query_active_users);
                     </td>
                     <td class="px-6 py-4">
                       <div>
-                        <p class="text-sm font-medium text-dark"><?= htmlspecialchars($row['organisasi']) ?></p>
+                        <p class="text-sm font-medium text-dark"><?= htmlspecialchars($row['nama_pengaju']) ?></p>
                         <p class="text-xs text-gray-500">Diajukan <?= date('d M Y', strtotime($row['created_at'])) ?></p>
                       </div>
                     </td>

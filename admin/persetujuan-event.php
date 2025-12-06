@@ -10,6 +10,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 $error = '';
 $success = '';
+$admin_id = $_SESSION['admin_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pengajuan_id = (int)$_POST['pengajuan_id'];
@@ -23,39 +24,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pengajuan = mysqli_fetch_assoc($result_pengajuan);
         
         if ($pengajuan) {
-            // Insert ke tabel events
             $query_insert = "INSERT INTO events (
                 judul, deskripsi, kategori_id, tanggal_mulai, tanggal_selesai,
-                waktu_mulai, waktu_selesai, lokasi, alamat_lengkap, tipe_event,
-                link_meeting, kuota, biaya, benefit, poster, link_pendaftaran,
-                batas_pendaftaran, status, catatan_admin, user_id, created_at
+                waktu_mulai, waktu_selesai, lokasi, tipe_lokasi, link_online,
+                poster, kuota_peserta, link_google_form, biaya, status, 
+                pengaju_id, approved_by, approved_at, created_at
             ) VALUES (
                 '{$pengajuan['judul']}', '{$pengajuan['deskripsi']}', {$pengajuan['kategori_id']},
-                '{$pengajuan['tanggal_mulai']}', '{$pengajuan['tanggal_selesai']}',
+                '{$pengajuan['tanggal_mulai']}', " . ($pengajuan['tanggal_selesai'] ? "'{$pengajuan['tanggal_selesai']}'" : "NULL") . ",
                 '{$pengajuan['waktu_mulai']}', '{$pengajuan['waktu_selesai']}',
-                '{$pengajuan['lokasi']}', '{$pengajuan['alamat_lengkap']}', '{$pengajuan['tipe_event']}',
-                '{$pengajuan['link_meeting']}', {$pengajuan['kuota']}, {$pengajuan['biaya']},
-                '{$pengajuan['benefit']}', '{$pengajuan['poster']}', '{$pengajuan['link_pendaftaran']}',
-                '{$pengajuan['batas_pendaftaran']}', 'upcoming', '$catatan_admin',
-                {$pengajuan['user_id']}, NOW()
+                '{$pengajuan['lokasi']}', '{$pengajuan['tipe_lokasi']}', '{$pengajuan['link_online']}',
+                '{$pengajuan['poster']}', {$pengajuan['kuota_peserta']}, '{$pengajuan['link_google_form']}',
+                {$pengajuan['biaya']}, 'aktif', {$pengajuan['pengaju_id']}, $admin_id, NOW(), NOW()
             )";
             
             if (mysqli_query($koneksi, $query_insert)) {
-                // Update status pengajuan
-                $query_update = "UPDATE pengajuan_event SET status = 'disetujui', catatan_admin = '$catatan_admin', updated_at = NOW() WHERE id = $pengajuan_id";
+                $query_update = "UPDATE pengajuan_event SET status = 'disetujui', catatan_admin = '$catatan_admin', reviewed_by = $admin_id, reviewed_at = NOW(), updated_at = NOW() WHERE id = $pengajuan_id";
                 mysqli_query($koneksi, $query_update);
                 
-                // Kirim notifikasi ke user
-                $notif_query = "INSERT INTO notifikasi (user_id, judul, pesan, tipe, created_at) 
-                                VALUES ({$pengajuan['user_id']}, 'Event Disetujui!', 'Pengajuan event \"{$pengajuan['judul']}\" telah disetujui oleh admin.', 'success', NOW())";
+                $notif_query = "INSERT INTO notifikasi (mahasiswa_id, judul, pesan, tipe, created_at) 
+                                VALUES ({$pengajuan['pengaju_id']}, 'Event Disetujui!', 'Pengajuan event \"{$pengajuan['judul']}\" telah disetujui oleh admin.', 'success', NOW())";
                 mysqli_query($koneksi, $notif_query);
                 
                 $success = 'Event berhasil disetujui!';
             }
         }
     } elseif ($action === 'reject') {
-        // Update status pengajuan menjadi ditolak
-        $query_update = "UPDATE pengajuan_event SET status = 'ditolak', catatan_admin = '$catatan_admin', updated_at = NOW() WHERE id = $pengajuan_id";
+        $query_update = "UPDATE pengajuan_event SET status = 'ditolak', catatan_admin = '$catatan_admin', reviewed_by = $admin_id, reviewed_at = NOW(), updated_at = NOW() WHERE id = $pengajuan_id";
         
         if (mysqli_query($koneksi, $query_update)) {
             // Ambil data pengajuan untuk notifikasi
@@ -63,24 +58,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result_pengajuan = mysqli_query($koneksi, $query_pengajuan);
             $pengajuan = mysqli_fetch_assoc($result_pengajuan);
             
-            // Kirim notifikasi ke user
-            $notif_query = "INSERT INTO notifikasi (user_id, judul, pesan, tipe, created_at) 
-                            VALUES ({$pengajuan['user_id']}, 'Event Ditolak', 'Pengajuan event \"{$pengajuan['judul']}\" ditolak. Alasan: $catatan_admin', 'error', NOW())";
+            $notif_query = "INSERT INTO notifikasi (mahasiswa_id, judul, pesan, tipe, created_at) 
+                            VALUES ({$pengajuan['pengaju_id']}, 'Event Ditolak', 'Pengajuan event \"{$pengajuan['judul']}\" ditolak. Alasan: $catatan_admin', 'error', NOW())";
             mysqli_query($koneksi, $notif_query);
             
             $success = 'Event berhasil ditolak!';
         }
     } elseif ($action === 'revision') {
-        // Update status pengajuan menjadi perlu revisi
-        $query_update = "UPDATE pengajuan_event SET status = 'revisi', catatan_admin = '$catatan_admin', updated_at = NOW() WHERE id = $pengajuan_id";
+        $query_update = "UPDATE pengajuan_event SET status = 'revisi', catatan_admin = '$catatan_admin', reviewed_by = $admin_id, reviewed_at = NOW(), updated_at = NOW() WHERE id = $pengajuan_id";
         
         if (mysqli_query($koneksi, $query_update)) {
             $query_pengajuan = "SELECT * FROM pengajuan_event WHERE id = $pengajuan_id";
             $result_pengajuan = mysqli_query($koneksi, $query_pengajuan);
             $pengajuan = mysqli_fetch_assoc($result_pengajuan);
             
-            $notif_query = "INSERT INTO notifikasi (user_id, judul, pesan, tipe, created_at) 
-                            VALUES ({$pengajuan['user_id']}, 'Revisi Diperlukan', 'Pengajuan event \"{$pengajuan['judul']}\" memerlukan revisi. Catatan: $catatan_admin', 'warning', NOW())";
+            $notif_query = "INSERT INTO notifikasi (mahasiswa_id, judul, pesan, tipe, created_at) 
+                            VALUES ({$pengajuan['pengaju_id']}, 'Revisi Diperlukan', 'Pengajuan event \"{$pengajuan['judul']}\" memerlukan revisi. Catatan: $catatan_admin', 'warning', NOW())";
             mysqli_query($koneksi, $notif_query);
             
             $success = 'Permintaan revisi berhasil dikirim!';
@@ -91,11 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Ambil ID pengajuan dari URL
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-// Query untuk mendapatkan detail pengajuan event
-$query = "SELECT pe.*, k.nama_kategori, k.icon, k.warna, u.nama as nama_pengaju, u.email as email_pengaju
+$query = "SELECT pe.*, k.nama_kategori, k.warna, m.nama as nama_pengaju, m.email as email_pengaju
           FROM pengajuan_event pe
           LEFT JOIN kategori_event k ON pe.kategori_id = k.id
-          LEFT JOIN users u ON pe.user_id = u.id
+          LEFT JOIN mahasiswa m ON pe.pengaju_id = m.id
           WHERE pe.id = $id";
 $result = mysqli_query($koneksi, $query);
 $event = mysqli_fetch_assoc($result);
@@ -176,7 +168,7 @@ if (!$event) {
                 }
                 ?>
               </p>
-              <p class="text-sm text-gray-600">Diajukan oleh <?= htmlspecialchars($event['organisasi']) ?> pada <?= date('d M Y, H:i', strtotime($event['created_at'])) ?></p>
+              <p class="text-sm text-gray-600">Diajukan oleh <?= htmlspecialchars($event['nama_pengaju']) ?> pada <?= date('d M Y, H:i', strtotime($event['created_at'])) ?></p>
             </div>
           </div>
           <span class="px-4 py-2 bg-amber-100 text-amber-700 text-sm font-medium rounded-full"><?= ucfirst($event['status']) ?></span>

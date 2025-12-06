@@ -6,12 +6,15 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, $_GET['se
 $kategori_filter = isset($_GET['kategori']) ? (int)$_GET['kategori'] : 0;
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($koneksi, $_GET['status']) : '';
 
-// Query dasar untuk mendapatkan events
-$query = "SELECT e.*, k.nama_kategori, u.nama as nama_penyelenggara
+$query = $query = "SELECT e.*, 
+                 k.nama_kategori, 
+                 m.nama AS nama_penyelenggara,
+                 e.link_google_form
           FROM events e
           LEFT JOIN kategori_event k ON e.kategori_id = k.id
-          LEFT JOIN users u ON e.user_id = u.id
+          LEFT JOIN mahasiswa m ON e.pengaju_id = m.id
           WHERE 1=1";
+
 
 // Tambah filter pencarian
 if ($search) {
@@ -41,52 +44,6 @@ $total_events = mysqli_num_rows($result_events);
 $query_kategori = "SELECT * FROM kategori_event ORDER BY nama_kategori";
 $result_kategori = mysqli_query($koneksi, $query_kategori);
 ?>
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daftar Event - SIM-Event Kampus</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#2563eb',
-            secondary: '#1e40af',
-            accent: '#f59e0b',
-            dark: '#1e293b',
-          }
-        }
-      }
-    }
-  </script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-100 min-h-screen">
-  <!-- Navbar -->
-  <nav class="bg-white shadow-sm sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        <a href="../index.php" class="flex items-center space-x-2">
-          <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <i class="fas fa-calendar-alt text-white text-xl"></i>
-          </div>
-          <span class="font-bold text-xl text-dark">SIM-Event</span>
-        </a>
-        
-        <div class="flex items-center gap-4">
-          <?php if (isset($_SESSION['user_id'])): ?>
-          <a href="dashboard.php" class="text-gray-600 hover:text-primary">Dashboard</a>
-          <a href="logout.php" class="text-gray-600 hover:text-primary">Logout</a>
-          <?php else: ?>
-          <a href="login.php" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition">Login</a>
-          <?php endif; ?>
-        </div>
-      </div>
-    </div>
-  </nav>
 
   <!-- Header -->
   <section class="bg-gradient-to-r from-primary to-secondary py-12">
@@ -194,7 +151,7 @@ $result_kategori = mysqli_query($koneksi, $query_kategori);
             </div>
             <div class="flex gap-2">
               <a href="event-detail.php?id=<?= $event['id'] ?>" class="flex-1 text-center py-3 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition">Detail</a>
-              <a href="<?= htmlspecialchars($event['link_pendaftaran']) ?>" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
+              <a href="<?= htmlspecialchars($event['link_google_form']) ?>" target="_blank" class="flex-1 text-center py-3 bg-primary text-white rounded-lg font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
                 <i class="fab fa-google text-sm"></i> Daftar
               </a>
             </div>

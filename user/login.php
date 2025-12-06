@@ -9,7 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = mysqli_real_escape_string($koneksi, $_POST['email']);
     $password = $_POST['password'];
     
-    $query = "SELECT * FROM users WHERE email = '$email' AND role = 'mahasiswa'";
+    // Change: Query ke tabel mahasiswa (bukan users)
+    $query = "SELECT * FROM mahasiswa WHERE email = '$email'";
     $result = mysqli_query($koneksi, $query);
     
     if (mysqli_num_rows($result) === 1) {
@@ -21,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['nama'] = $user['nama'];
             $_SESSION['email'] = $user['email'];
-            $_SESSION['role'] = $user['role'];
             $_SESSION['nim'] = $user['nim'];
             $_SESSION['fakultas'] = $user['fakultas'];
             $_SESSION['prodi'] = $user['prodi'];
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Password yang Anda masukkan salah!';
         }
     } else {
-        $error = 'Email tidak ditemukan atau bukan akun mahasiswa!';
+        $error = 'Email tidak ditemukan!';
     }
 }
 ?>

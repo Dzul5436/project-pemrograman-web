@@ -25,19 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $waktu_mulai = mysqli_real_escape_string($koneksi, $_POST['waktu_mulai']);
     $waktu_selesai = mysqli_real_escape_string($koneksi, $_POST['waktu_selesai']);
     $lokasi = mysqli_real_escape_string($koneksi, $_POST['lokasi']);
-    $alamat_lengkap = mysqli_real_escape_string($koneksi, $_POST['alamat_lengkap']);
-    $tipe_event = mysqli_real_escape_string($koneksi, $_POST['tipe_event']);
-    $link_meeting = mysqli_real_escape_string($koneksi, $_POST['link_meeting']);
-    $kuota = (int)$_POST['kuota'];
-    $biaya = (int)$_POST['biaya'];
-    $benefit = mysqli_real_escape_string($koneksi, implode(',', $_POST['benefit'] ?? []));
-    $link_pendaftaran = mysqli_real_escape_string($koneksi, $_POST['link_pendaftaran']);
-    $batas_pendaftaran = mysqli_real_escape_string($koneksi, $_POST['batas_pendaftaran']);
-    $organisasi = mysqli_real_escape_string($koneksi, $_POST['organisasi']);
-    $nama_pic = mysqli_real_escape_string($koneksi, $_POST['nama_pic']);
-    $no_hp_pic = mysqli_real_escape_string($koneksi, $_POST['no_hp_pic']);
-    $email_pic = mysqli_real_escape_string($koneksi, $_POST['email_pic']);
-    $catatan = mysqli_real_escape_string($koneksi, $_POST['catatan']);
+    $tipe_lokasi = mysqli_real_escape_string($koneksi, $_POST['tipe_event']);
+    $link_online = mysqli_real_escape_string($koneksi, $_POST['link_meeting']);
+    $kuota_peserta = (int)$_POST['kuota'];
+    $biaya = (float)$_POST['biaya'];
+    $link_google_form = mysqli_real_escape_string($koneksi, $_POST['link_pendaftaran']);
+    $nama_organisasi = mysqli_real_escape_string($koneksi, $_POST['organisasi']);
+    $kontak_pengaju = mysqli_real_escape_string($koneksi, $_POST['no_hp_pic']);
     
     // Upload poster jika ada
     $poster = '';
@@ -60,37 +54,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    // Query insert pengajuan event
     $query_insert = "INSERT INTO pengajuan_event (
         judul, deskripsi, kategori_id, tanggal_mulai, tanggal_selesai, 
-        waktu_mulai, waktu_selesai, lokasi, alamat_lengkap, tipe_event, 
-        link_meeting, kuota, biaya, benefit, poster, link_pendaftaran, 
-        batas_pendaftaran, organisasi, nama_pic, no_hp_pic, email_pic, 
-        catatan, status, user_id, created_at
+        waktu_mulai, waktu_selesai, lokasi, tipe_lokasi, link_online,
+        poster, kuota_peserta, link_google_form, biaya, nama_organisasi, 
+        kontak_pengaju, pengaju_id, status, created_at
     ) VALUES (
         '$judul', '$deskripsi', $kategori_id, '$tanggal_mulai', '$tanggal_selesai',
-        '$waktu_mulai', '$waktu_selesai', '$lokasi', '$alamat_lengkap', '$tipe_event',
-        '$link_meeting', $kuota, $biaya, '$benefit', '$poster', '$link_pendaftaran',
-        '$batas_pendaftaran', '$organisasi', '$nama_pic', '$no_hp_pic', '$email_pic',
-        '$catatan', 'menunggu', $user_id, NOW()
+        '$waktu_mulai', '$waktu_selesai', '$lokasi', '$tipe_lokasi', '$link_online',
+        '$poster', $kuota_peserta, '$link_google_form', $biaya, '$nama_organisasi',
+        '$kontak_pengaju', $user_id, 'menunggu', NOW()
     )";
     
     if (mysqli_query($koneksi, $query_insert)) {
         $success = 'Pengajuan event berhasil dikirim! Admin akan mereview dalam 1-3 hari kerja.';
         
-        // Buat notifikasi untuk user
-        $notif_query = "INSERT INTO notifikasi (user_id, judul, pesan, tipe, created_at) 
+        $notif_query = "INSERT INTO notifikasi (mahasiswa_id, judul, pesan, tipe, created_at) 
                         VALUES ($user_id, 'Pengajuan Event Terkirim', 'Pengajuan event \"$judul\" berhasil dikirim dan sedang menunggu review admin.', 'info', NOW())";
         mysqli_query($koneksi, $notif_query);
-        
-        // Buat notifikasi untuk admin
-        $admin_query = "SELECT id FROM users WHERE role = 'admin'";
-        $admin_result = mysqli_query($koneksi, $admin_query);
-        while ($admin = mysqli_fetch_assoc($admin_result)) {
-            $notif_admin = "INSERT INTO notifikasi (user_id, judul, pesan, tipe, created_at) 
-                            VALUES ({$admin['id']}, 'Pengajuan Event Baru', 'Ada pengajuan event baru \"$judul\" yang perlu direview.', 'warning', NOW())";
-            mysqli_query($koneksi, $notif_admin);
-        }
     } else {
         $error = 'Terjadi kesalahan saat mengajukan event. Silakan coba lagi.';
     }

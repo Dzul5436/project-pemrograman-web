@@ -8,8 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = mysqli_real_escape_string($koneksi, $_POST['email']);
     $password = $_POST['password'];
     
-    // Query untuk mencari user berdasarkan email dan role = 'admin'
-    $query = "SELECT * FROM users WHERE email = '$email' AND role = 'admin'";
+    $query = "SELECT * FROM admin WHERE email = '$email'";
     $result = mysqli_query($koneksi, $query);
     
     if (mysqli_num_rows($result) === 1) {
@@ -19,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['admin_nama'] = $admin['nama'];
             $_SESSION['admin_email'] = $admin['email'];
-            $_SESSION['admin_role'] = $admin['role'];
             
             // Redirect ke dashboard admin
             header('Location: dashboard.php');
