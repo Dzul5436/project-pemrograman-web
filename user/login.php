@@ -1,3 +1,43 @@
+<?php
+session_start();
+require_once '../koneksi.php';
+
+$error = '';
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = mysqli_real_escape_string($koneksi, $_POST['email']);
+    $password = $_POST['password'];
+    
+    $query = "SELECT * FROM users WHERE email = '$email' AND role = 'mahasiswa'";
+    $result = mysqli_query($koneksi, $query);
+    
+    if (mysqli_num_rows($result) === 1) {
+        $user = mysqli_fetch_assoc($result);
+        
+        // Verifikasi password dengan MD5
+        if (md5($password) === $user['password']) {
+            // Set session
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['nama'] = $user['nama'];
+            $_SESSION['email'] = $user['email'];
+            $_SESSION['role'] = $user['role'];
+            $_SESSION['nim'] = $user['nim'];
+            $_SESSION['fakultas'] = $user['fakultas'];
+            $_SESSION['prodi'] = $user['prodi'];
+            $_SESSION['no_hp'] = $user['no_hp'];
+            
+            // Redirect ke dashboard
+            header('Location: dashboard.php');
+            exit();
+        } else {
+            $error = 'Password yang Anda masukkan salah!';
+        }
+    } else {
+        $error = 'Email tidak ditemukan atau bukan akun mahasiswa!';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -59,15 +99,28 @@
       <h1 class="text-2xl md:text-3xl font-bold text-dark">Masuk ke Akun</h1>
       <p class="text-gray-500 mt-2">Silakan masuk untuk melanjutkan</p>
       
-      <!-- Login Form -->
-      <form class="mt-8 space-y-6">
+      <?php if ($error): ?>
+      <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+        <i class="fas fa-exclamation-circle text-red-500"></i>
+        <span class="text-red-700 text-sm"><?= $error ?></span>
+      </div>
+      <?php endif; ?>
+      
+      <?php if ($success): ?>
+      <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+        <i class="fas fa-check-circle text-green-500"></i>
+        <span class="text-green-700 text-sm"><?= $success ?></span>
+      </div>
+      <?php endif; ?>
+      
+      <form method="POST" action="" class="mt-8 space-y-6">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
           <div class="relative">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
               <i class="fas fa-envelope"></i>
             </span>
-            <input type="email" placeholder="nama@student.kampus.ac.id" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
+            <input type="email" name="email" required placeholder="nama@student.kampus.ac.id" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition" value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>">
           </div>
         </div>
         
@@ -77,65 +130,52 @@
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
               <i class="fas fa-lock"></i>
             </span>
-            <input type="password" placeholder="********" class="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition">
-            <button type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <i class="fas fa-eye"></i>
+            <input type="password" name="password" required placeholder="********" class="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition" id="password">
+            <button type="button" onclick="togglePassword('password')" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <i class="fas fa-eye" id="password-icon"></i>
             </button>
           </div>
         </div>
         
         <div class="flex items-center justify-between">
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
+            <input type="checkbox" name="remember" class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary">
             <span class="text-sm text-gray-600">Ingat saya</span>
           </label>
           <a href="#" class="text-sm text-primary hover:text-secondary font-medium">Lupa password?</a>
         </div>
         
-        <a href="dashboard-mahasiswa.html" class="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
+        <button type="submit" class="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-secondary transition flex items-center justify-center gap-2">
           <i class="fas fa-sign-in-alt"></i> Masuk
-        </a>
-        
-        <div class="relative">
-          <div class="absolute inset-0 flex items-center">
-            <div class="w-full border-t border-gray-200"></div>
-          </div>
-          <div class="relative flex justify-center text-sm">
-            <span class="px-4 bg-white text-gray-500">atau masuk dengan</span>
-          </div>
-        </div>
-        
-        <div class="grid grid-cols-2 gap-4">
-          <button type="button" class="py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2">
-            <i class="fab fa-google text-red-500"></i> Google
-          </button>
-          <button type="button" class="py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2">
-            <i class="fas fa-university text-primary"></i> SSO Kampus
-          </button>
-        </div>
+        </button>
       </form>
       
       <p class="text-center text-gray-500 mt-8">
-        Belum punya akun? <a href="register.html" class="text-primary font-semibold hover:text-secondary">Daftar sekarang</a>
+        Belum punya akun? <a href="register.php" class="text-primary font-semibold hover:text-secondary">Daftar sekarang</a>
       </p>
       
-      <!-- Updated quick access - removed panitia, only mahasiswa now -->
-      <div class="mt-8 p-4 bg-blue-50 rounded-xl">
-        <p class="text-sm text-blue-800 font-medium mb-3"><i class="fas fa-info-circle mr-2"></i>Demo Quick Access:</p>
-        <div class="flex flex-wrap gap-2">
-          <a href="dashboard-mahasiswa.html" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-secondary transition flex items-center gap-2">
-            <i class="fas fa-user-graduate"></i> Masuk sebagai Mahasiswa
-          </a>
-        </div>
-      </div>
-
-      <!-- Admin login link -->
       <div class="mt-4 text-center">
-        <a href="../admin/login.html" class="text-slate-500 hover:text-slate-700 text-sm flex items-center justify-center gap-2">
+        <a href="../admin/login.php" class="text-slate-500 hover:text-slate-700 text-sm flex items-center justify-center gap-2">
           <i class="fas fa-shield-halved"></i> Masuk sebagai Admin
         </a>
       </div>
     </div>
   </div>
+  
+  <script>
+    function togglePassword(inputId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(inputId + '-icon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+  </script>
 </body>
 </html>

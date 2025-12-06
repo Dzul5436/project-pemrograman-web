@@ -36,13 +36,13 @@
         <div class="hidden md:flex items-center space-x-8">
           <a href="./?p=blk" class="text-primary font-semibold">Beranda</a>
           <a href="./?p=ev" class="text-gray-600 hover:text-primary transition">Daftar Event</a>
-          <a href="user/calendar.html" class="text-gray-600 hover:text-primary transition">Kalender</a>
+          <a href="./?p=cl" class="text-gray-600 hover:text-primary transition">Kalender</a>
           <a href="user/about.html" class="text-gray-600 hover:text-primary transition">Tentang</a>
         </div>
         
         <div class="flex items-center space-x-3">
-          <a href="login.html" class="px-4 py-2 text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition font-medium">Masuk</a>
-          <a href="register.html" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition font-medium hidden sm:block">Daftar</a>
+          <a href="user/login.php" class="px-4 py-2 text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition font-medium">Masuk</a>
+          <a href="user/register.php" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary transition font-medium hidden sm:block">Daftar</a>
         </div>
       </div>
     </div>

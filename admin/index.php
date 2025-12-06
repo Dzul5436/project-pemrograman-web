@@ -43,16 +43,12 @@
       <!-- Changed menu to focus on event approval requests -->
       <a href="./?p=buat-event" class="flex items-center gap-3 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition">
         <i class="fas fa-inbox w-5"></i> Pengajuan Event
-        <span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">5</span>
       </a>
       <a href="#" class="flex items-center gap-3 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition">
         <i class="fas fa-calendar-check w-5"></i> Event Disetujui
       </a>
       <a href="#" class="flex items-center gap-3 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition">
         <i class="fas fa-calendar-times w-5"></i> Event Ditolak
-      </a>
-      <a href="#" class="flex items-center gap-3 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition">
-        <i class="fas fa-chart-pie w-5"></i> Laporan
       </a>
       <a href="#" class="flex items-center gap-3 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition">
         <i class="fas fa-cog w-5"></i> Pengaturan
